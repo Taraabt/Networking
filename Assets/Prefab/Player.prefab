@@ -150,6 +150,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
+  Ball: {fileID: 7706872698267096928, guid: e0d2d776ee9d7494ca1e5e0fb090dcae, type: 3}
   speed: 5
   score: 0
   playerId: 0

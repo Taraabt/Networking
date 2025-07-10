@@ -1,8 +1,6 @@
 using Mirror;
 using UnityEngine;
 using System.Collections.Generic;
-using TMPro;
-using UnityEngine.SocialPlatforms.Impl;
 
 [DefaultExecutionOrder(-1)]
 public class CustomNetworkManager : NetworkManager
@@ -16,12 +14,37 @@ public class CustomNetworkManager : NetworkManager
 
     private void Awake()
     {
-        Instance=this;
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(Instance);
+        }
+    }
+
+
+    [Server]
+    public void HandleWin(int winnerId)
+    {
+        foreach (var player in Players)
+        {
+            bool isWinner = player.playerId == winnerId;
+            player.TargetShowEndScreen(player.connectionToClient, isWinner);
+        }
     }
 
     [Server]
     public override void OnServerAddPlayer(NetworkConnectionToClient conn)
     {
+
+        if (conn.identity != null)
+        {
+            return;
+        }
+
         Transform spawn = spawnPoints[nextIndex % spawnPoints.Count];
         nextIndex++;
 
@@ -32,6 +55,27 @@ public class CustomNetworkManager : NetworkManager
         NetworkServer.AddPlayerForConnection(conn, playerObj);
         Players.Add(player);
         playerId++;
+    }
+
+    [Server]
+    public override void OnServerSceneChanged(string sceneName)
+    {
+        if (sceneName == "GameScene")
+        {
+            spawnPoints.Clear();
+            foreach (var sp in FindObjectsOfType<SpawnPoint>())
+            {
+                spawnPoints.Add(sp.transform);
+            }
+            int i = 0;
+            foreach (Player player in Players)
+            {
+                Transform spawn = spawnPoints[i % spawnPoints.Count];
+                player.transform.position = spawn.position;
+                player.transform.rotation = spawn.rotation;
+                i++;
+            }
+        }
     }
 
 }

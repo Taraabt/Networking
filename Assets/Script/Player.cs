@@ -1,5 +1,4 @@
 using Mirror;
-using Mirror.Examples.BilliardsPredicted;
 using System;
 using TMPro;
 using UnityEngine;
@@ -11,6 +10,7 @@ public class Player : NetworkBehaviour
     Vector2 move;
     Input inputAction;
     Rigidbody rb;
+    [SerializeField] GameObject Ball;
     [SerializeField] float speed;
     TMP_Text scoreText;
     public static Action<int> OnUpdateScore;
@@ -24,6 +24,11 @@ public class Player : NetworkBehaviour
        inputAction=new Input();
        inputAction.Enable();
        rb = GetComponent<Rigidbody>();
+    }
+
+    public override void OnStartClient()
+    {
+        DontDestroyOnLoad(gameObject);
     }
 
     private void OnEnable()
@@ -47,13 +52,35 @@ public class Player : NetworkBehaviour
         rb.linearVelocity = move;
     }
 
-    void OnScoreChanged(int oldValue, int newValue)
+    [TargetRpc]
+    public void TargetShowEndScreen(NetworkConnection target, bool isWinner)
+    {
+
+        if (isWinner)
+        {
+            GameManager.Instance.ShowWin();
+        }
+        else
+        {
+            GameManager.Instance.ShowLose();
+        }
+    }
+
+    [Server]
+    void CheckWinCondition()
+    {
+        if (score >= 5)
+        {
+            CustomNetworkManager.Instance.HandleWin(playerId);
+        }
+    }
+
+    void OnScoreChanged(int oldvalue,int newValue)
     {
         if (scoreText == null)
         {
             scoreText = GameManager.Instance.scoreText[playerId];
         }
-
         scoreText.text = newValue.ToString();
     }
 
@@ -64,6 +91,7 @@ public class Player : NetworkBehaviour
             if (player.playerId == playerid&&this.playerId==playerid)
             {
                 player.score++;
+                player.CheckWinCondition();
             }
         }
     }
